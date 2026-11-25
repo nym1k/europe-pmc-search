@@ -1,7 +1,10 @@
 <script setup lang="ts">
-import HelloWorld from './components/HelloWorld.vue'
+import QueryBuilder from './components/QueryBuilder.vue'
 </script>
 
 <template>
-  <HelloWorld />
+  <main>
+    <h1>Search Europe PMC</h1>
+    <QueryBuilder />
+  </main>
 </template>
