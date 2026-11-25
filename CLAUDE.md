@@ -1,20 +1,25 @@
 # europe-pmc-search
 
-## About
 Search front end for the Europe PMC REST API with an AND / OR / NOT query builder. Vue 3 + Vite + TypeScript.
 
-## Plans
-Plans live in `.claude/plans/`. Check `.claude/plans/index.md` for the active plan and only load that file into context — don't load all plan files.
+## Commands
+- `npm run lint` runs `vue-tsc -b`. The root tsconfig only holds project references, so `vue-tsc --noEmit` checks nothing; keep the `-b`.
+- `npm test` runs Vitest once in jsdom (config is the `test` block in `vite.config.ts`).
+- CI (`.github/workflows/ci.yml`) runs lint, tests and build on every PR.
 
-## Project-specific rules
+## Code
 - Vue 3 Composition API with `<script setup>` and TypeScript.
 - UK English in all UI text.
 - Accessibility first: semantic HTML, labelled controls, visible focus, `aria-live` for result updates.
-- Never use `v-html` on API data.
-- Tests use Vitest and Vue Test Utils with mocked `fetch`, never the live API. Use the JSON in `src/__fixtures__/` for tests and offline dev.
-- Never commit, quote or reference anything in docs-private/ in tracked files.
-- Keep commits small and explanatory: reviewers read the history to judge the AI-assisted work.
-- Work in small steps and stop for review after each one.
+- Render API data as text through template interpolation; `v-html` stays out of the codebase.
+- Europe PMC operators are UPPERCASE: `AND`, `OR`, `NOT`.
 
-## Key files
-- `src/__fixtures__/results-page.json`, `src/__fixtures__/zero-results.json` — sample API responses
+## Tests
+- Vitest and Vue Test Utils, with tests beside the code as `*.spec.ts`.
+- Mock `fetch` and use the saved responses in `src/__fixtures__/` (`results-page.json`, `zero-results.json`). Tests never call the live API.
+
+## Workflow
+- Work is split into GitHub issues; each gets a `<n>-<slug>` branch and a PR with `Closes #n`. `main` only changes through PRs.
+- Ideas outside the current issue become an issue labelled `later` and are not built.
+- Work in small steps and stop for review after each one. Keep commits small, one change each, with a message that says why.
+- When `.claude/plans/index.md` exists, it names the active plan; load only that plan file.
