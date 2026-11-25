@@ -113,6 +113,32 @@ describe('QueryBuilder', () => {
       })
       expect(labels).toEqual(['Term 1', 'Term 2', 'Operator for term 2'])
     })
+
+    it('keeps labels and focus tied to the right term after removing the first of three', async () => {
+      const wrapper = mountBuilder()
+      await inputs(wrapper)[0].setValue('a')
+      await addTerm(wrapper)
+      await inputs(wrapper)[1].setValue('b')
+      await addTerm(wrapper)
+      await inputs(wrapper)[2].setValue('c')
+
+      await removeButtons(wrapper)[0].trigger('click')
+      await flushPromises()
+      const labelled = inputs(wrapper).map((input) => {
+        const label = wrapper.get(`label[for="${input.attributes('id')}"]`)
+        return [label.text(), (input.element as HTMLInputElement).value]
+      })
+      expect(labelled).toEqual([
+        ['Term 1', 'b'],
+        ['Term 2', 'c'],
+      ])
+      expect(document.activeElement).toBe(button(wrapper, 'Add term').element)
+
+      await removeButtons(wrapper)[1].trigger('click')
+      await flushPromises()
+      expect(document.activeElement).toBe(inputs(wrapper)[0].element)
+      expect((document.activeElement as HTMLInputElement).value).toBe('b')
+    })
   })
 
   describe('search', () => {
