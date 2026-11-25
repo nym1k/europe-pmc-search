@@ -23,3 +23,6 @@ dist-ssr
 *.sln
 *.sw?
 docs-private/
+
+# Claude
+.claude/settings.local.json

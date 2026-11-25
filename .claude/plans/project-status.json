@@ -1,0 +1,14 @@
+{
+  "overallStatus": "active",
+  "phase": "Phase 1: Foundations and query builder",
+  "summary": "Europe PMC literature search front end with an AND/OR/NOT query builder (Vue 3 + Vite + TypeScript).",
+  "blockers": [],
+  "completedThisWeek": [],
+  "nextUp": ["Add Vitest and Vue Test Utils"],
+  "resumeNote": null,
+  "carryOverNote": null,
+  "pickerNote": null,
+  "milestones": [],
+  "lastUpdated": "2026-11-25T17:11:38Z",
+  "type": "code"
+}

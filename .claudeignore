@@ -1,0 +1,12 @@
+node_modules/
+dist/
+dist-ssr/
+*.local
+.env
+.env.*
+*.log
+package-lock.json
+.DS_Store
+.serena/cache/
+*.tsbuildinfo
+coverage/
