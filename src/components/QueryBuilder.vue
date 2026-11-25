@@ -12,7 +12,6 @@ const terms = ref<Term[]>([{ id: nextId++, operator: 'AND', text: '' }])
 const query = computed(() => buildQuery(terms.value))
 
 const focusTerm = (id: number) => document.getElementById(`term-${id}`)?.focus()
-const addButton = ref<HTMLButtonElement>()
 
 async function addTerm() {
   const id = nextId++
@@ -22,11 +21,10 @@ async function addTerm() {
 }
 
 async function removeTerm(index: number) {
-  const previous = terms.value[index - 1]
   terms.value.splice(index, 1)
   await nextTick()
-  if (previous) focusTerm(previous.id)
-  else addButton.value?.focus()
+  const target = terms.value[index - 1] ?? terms.value[0]
+  if (target) focusTerm(target.id)
 }
 
 function submit() {
@@ -35,7 +33,7 @@ function submit() {
 </script>
 
 <template>
-  <form @submit.prevent="submit">
+  <form role="search" aria-label="Search Europe PMC" @submit.prevent="submit">
     <ol>
       <li v-for="(term, index) in terms" :key="term.id">
         <template v-if="index > 0">
@@ -56,7 +54,7 @@ function submit() {
         </button>
       </li>
     </ol>
-    <button ref="addButton" type="button" @click="addTerm">Add term</button>
+    <button type="button" @click="addTerm">Add term</button>
 
     <h2>Query preview</h2>
     <p data-testid="query-preview">{{ query }}</p>

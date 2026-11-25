@@ -56,12 +56,12 @@ describe('QueryBuilder', () => {
       expect(document.activeElement).toBe(inputs(wrapper)[0].element)
     })
 
-    it('focuses "Add term" after removing the first term', async () => {
+    it('focuses the new first term after removing the first term', async () => {
       const wrapper = mountBuilder()
       await addTerm(wrapper)
       await removeButtons(wrapper)[0].trigger('click')
       await flushPromises()
-      expect(document.activeElement).toBe(button(wrapper, 'Add term').element)
+      expect(document.activeElement).toBe(inputs(wrapper)[0].element)
     })
   })
 
@@ -132,7 +132,8 @@ describe('QueryBuilder', () => {
         ['Term 1', 'b'],
         ['Term 2', 'c'],
       ])
-      expect(document.activeElement).toBe(button(wrapper, 'Add term').element)
+      expect(document.activeElement).toBe(inputs(wrapper)[0].element)
+      expect((document.activeElement as HTMLInputElement).value).toBe('b')
 
       await removeButtons(wrapper)[1].trigger('click')
       await flushPromises()
@@ -142,6 +143,12 @@ describe('QueryBuilder', () => {
   })
 
   describe('search', () => {
+    it('is a labelled search landmark', () => {
+      const form = mountBuilder().get('form')
+      expect(form.attributes('role')).toBe('search')
+      expect(form.attributes('aria-label')).toBe('Search Europe PMC')
+    })
+
     it('emits the built query when Search is pressed', async () => {
       const wrapper = mountBuilder()
       await inputs(wrapper)[0].setValue('malaria')
