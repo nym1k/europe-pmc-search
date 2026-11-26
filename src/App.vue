@@ -21,6 +21,10 @@ const status = computed(() => {
       ? `The search failed again (attempt ${failedRetries.value + 1}). Please try again.`
       : error.value
   if (empty.value) return 'No results. Try removing a term to widen the search.'
+  return range.value
+})
+
+const range = computed(() => {
   if (!results.value.length) return ''
   const last = first.value + results.value.length - 1
   return `Results ${formatNumber(first.value)} to ${formatNumber(last)} of ${formatNumber(hitCount.value)}`
@@ -80,12 +84,12 @@ async function retryWithFocus() {
         </li>
       </ol>
       <nav aria-label="Results pages">
-        <!-- Loading and errors repeated where the user is, since the live region may be scrolled out of view;
-             screen readers already hear the live region, so this is visual only.
-             Always rendered with its height reserved, so the buttons don't move when it fills. -->
-        <span class="nav-status" :class="{ error: showError }" aria-hidden="true">
-          <template v-if="loading"><span class="spinner"></span>Loading results</template>
-          <template v-else-if="showError">{{ status }}</template>
+        <!-- Repeats loading and errors where the user is (hidden from screen readers, which hear the live region);
+             the range stays readable. Height reserved so the buttons don't move. -->
+        <span class="nav-status" :class="{ error: showError }">
+          <span v-if="loading" aria-hidden="true"><span class="spinner"></span>Loading results</span>
+          <span v-else-if="showError" aria-hidden="true">{{ status }}</span>
+          <template v-else>{{ range }}</template>
         </span>
         <button type="button" :disabled="!hasPrevious" @click="changePage(previous)">Previous</button>
         <button type="button" :disabled="!hasNext" @click="changePage(next)">Next</button>
@@ -96,7 +100,8 @@ async function retryWithFocus() {
 
 <style scoped>
 p[aria-live],
-.nav-status {
+.nav-status,
+.nav-status > span {
   display: flex;
   align-items: center;
   gap: var(--space-2);
@@ -135,6 +140,13 @@ p[aria-live] {
 @media (prefers-reduced-motion: reduce) {
   .spinner {
     animation: none;
+  }
+}
+
+/* Forced colours turn both border colours into the same system colour, which hides the moving segment. */
+@media (forced-colors: active) {
+  .spinner {
+    border-top-color: Highlight;
   }
 }
 
