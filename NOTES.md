@@ -35,8 +35,20 @@
 
 ## Time spent
 
-_To be written._
+About 4 hours of building before this README and notes issue, including scaffold and setup, plus about 35 minutes on this issue: about 4h35 in all, against the 3 hours I'd planned.
+
+- **Wed 25 Nov:** about 1h50. Scaffold and setup (16:45 to 17:16), then 18:00 to 19:21 on tests and CI, the query builder function, the query builder form and the start of the search composable.
+- **Thu 26 Nov:** about 2h10 from 16:57 to 19:08 on the search composable, the results list and paging, styling and the accessibility check, then the README and these notes from about 19:08 to 19:43.
+- **Stated separately:** about 25 minutes planning and writing the issues (17:17 to 17:40 on Wed 25 Nov). The prep before 16:45, reading the API docs and checking the live API, wasn't timed.
+
+It ran over mainly because each round of keyboard and VoiceOver testing turned up something to change, and on making sure the tests would fail if the code they protect broke.
 
 ## AI reflection
 
-_To be written._
+Claude Code drafted plans, tests and code; I set the scope of each issue and did the manual testing. It edited code through the Serena MCP server, ran the issue and pull request workflow through slash commands, and checked pages with Playwright and axe-core. A separate Claude chat reviewed its plans and pull requests, and on larger pull requests Claude Code also ran a reviewer that hadn't seen our conversation.
+
+The most helpful suggestion came after my VoiceOver pass. Pressing Retry while offline gave no announcement, and Claude explained why: the live region went from the error to "Loading results" and back to the same error within milliseconds, and screen readers skip text that comes back unchanged. It suggested different wording for a failed retry, and when it pointed out that a third failure would repeat that wording, we added the attempt number.
+
+One suggestion I rejected was dropping the abort-on-unmount cleanup in the search composable, because nothing in this app unmounts it. I kept it, with a test, because a composable shouldn't depend on how one page uses it today.
+
+For behaviour changes, tests were written first and seen to fail, and for the search composable I had each guard removed in turn to confirm a test failed. The fresh reviewer found a real focus bug: a new search that cancelled a page still loading moved focus to the Results heading. Claude confirmed it in Chromium by removing the fix, and I checked the fixed behaviour in Safari. axe-core checked five page states at three widths against WCAG 2.2 AA. Before each pull request that changed the page, I tested with the keyboard and VoiceOver in Safari, which is how loading and error messages that sat out of view were found.
