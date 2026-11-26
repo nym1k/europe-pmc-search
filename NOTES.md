@@ -41,7 +41,7 @@ About 4 hours of building before this README and notes issue, including scaffold
 - **Thu 26 Nov:** about 2h10 from 16:57 to 19:08 on the search composable, the results list and paging, styling and the accessibility check, then the README and these notes from about 19:08 to 19:43.
 - **Stated separately:** about 25 minutes planning and writing the issues (17:17 to 17:40 on Wed 25 Nov). The prep before 16:45, reading the API docs and checking the live API, wasn't timed.
 
-It ran over mainly because each round of keyboard and VoiceOver testing turned up something to change, and on making sure the tests would fail if the code they protect broke.
+It ran over mainly on keyboard and VoiceOver testing, where each round turned up something to change, and on making sure the tests would fail if the code they protect broke.
 
 ## AI reflection
 
