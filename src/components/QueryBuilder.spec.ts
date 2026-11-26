@@ -90,7 +90,6 @@ describe('QueryBuilder', () => {
   describe('preview', () => {
     it('shows the built query as terms and operators change', async () => {
       const wrapper = mountBuilder()
-      expect(preview(wrapper)).toBe('')
       await inputs(wrapper)[0].setValue('malaria')
       expect(preview(wrapper)).toBe('malaria')
       await addTerm(wrapper)
@@ -98,6 +97,20 @@ describe('QueryBuilder', () => {
       expect(preview(wrapper)).toBe('malaria AND "lung cancer"')
       await selects(wrapper)[0].setValue('NOT')
       expect(preview(wrapper)).toBe('malaria NOT "lung cancer"')
+    })
+
+    it('says there is no query yet until a term has text, and again once it is cleared', async () => {
+      const wrapper = mountBuilder()
+      const previewClasses = () => wrapper.get('[data-testid="query-preview"]').classes()
+      expect(preview(wrapper)).toBe('No query yet')
+      expect(previewClasses()).toContain('placeholder')
+      await inputs(wrapper)[0].setValue('malaria')
+      expect(preview(wrapper)).toBe('malaria')
+      expect(previewClasses()).not.toContain('placeholder')
+      expect(previewClasses()).toContain('preview')
+      await inputs(wrapper)[0].setValue('')
+      expect(preview(wrapper)).toBe('No query yet')
+      expect(previewClasses()).toContain('placeholder')
     })
   })
 

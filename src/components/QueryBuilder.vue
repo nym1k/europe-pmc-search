@@ -36,14 +36,16 @@ function submit() {
   <form role="search" aria-label="Search Europe PMC" @submit.prevent="submit">
     <ol>
       <li v-for="(term, index) in terms" :key="term.id">
-        <template v-if="index > 0">
+        <div v-if="index > 0" class="field">
           <label :for="`operator-${term.id}`">Operator for term {{ index + 1 }}</label>
           <select :id="`operator-${term.id}`" v-model="term.operator">
             <option v-for="operator in operators" :key="operator" :value="operator">{{ operator }}</option>
           </select>
-        </template>
-        <label :for="`term-${term.id}`">Term {{ index + 1 }}</label>
-        <input :id="`term-${term.id}`" v-model="term.text" type="text" />
+        </div>
+        <div class="field term">
+          <label :for="`term-${term.id}`">Term {{ index + 1 }}</label>
+          <input :id="`term-${term.id}`" v-model="term.text" type="text" />
+        </div>
         <button
           v-if="terms.length > 1"
           type="button"
@@ -57,8 +59,51 @@ function submit() {
     <button type="button" @click="addTerm">Add term</button>
 
     <h2>Query preview</h2>
-    <p data-testid="query-preview">{{ query }}</p>
+    <p data-testid="query-preview" class="preview" :class="{ placeholder: !query }">{{ query || 'No query yet' }}</p>
 
     <button type="submit">Search</button>
   </form>
 </template>
+
+<style scoped>
+ol {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 var(--space-3);
+}
+
+li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-2) var(--space-3);
+  margin-bottom: var(--space-3);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.term {
+  flex: 1 1 12rem;
+}
+
+.preview {
+  padding: var(--space-2) var(--space-3);
+  font-family: var(--mono);
+  background: var(--surface);
+  border-radius: 4px;
+  overflow-wrap: anywhere;
+}
+
+.placeholder {
+  font-family: var(--sans);
+  color: var(--text-muted);
+}
+
+h2 {
+  margin-top: var(--space-4);
+}
+</style>
