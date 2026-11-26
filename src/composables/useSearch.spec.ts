@@ -100,7 +100,7 @@ describe('useSearch', () => {
       fetchMock.mockImplementationOnce(() => httpError(500))
       const s = useSearch()
       await s.search('bananas')
-      expect(s.error.value).toBeTruthy()
+      expect(s.error.value).toBe('The search failed. Please try again.')
       expect(s.loading.value).toBe(false)
     })
 
@@ -108,7 +108,7 @@ describe('useSearch', () => {
       fetchMock.mockImplementationOnce(() => Promise.reject(new TypeError('Failed to fetch')))
       const s = useSearch()
       await s.search('bananas')
-      expect(s.error.value).toBeTruthy()
+      expect(s.error.value).toBe('The search failed. Please try again.')
       expect(s.loading.value).toBe(false)
     })
   })
@@ -259,6 +259,15 @@ describe('useSearch', () => {
       fetchMock.mockImplementationOnce(() => ok(page({ hitCount: 3 })))
       await s.search('bananas')
       expect(s.hasNext.value).toBe(false)
+
+      fetchMock
+        .mockImplementationOnce(() => ok(page({ hitCount: 28 })))
+        .mockImplementationOnce(() => ok(page({ hitCount: 28, nextCursorMark: 'page3' })))
+      await s.search('bananas')
+      expect(s.hasNext.value).toBe(true)
+      await s.next()
+      expect(s.page.value).toBe(2)
+      expect(s.hasNext.value).toBe(false)
     })
 
     it('keeps the page and results when next() fails', async () => {
@@ -275,17 +284,15 @@ describe('useSearch', () => {
 
     it('keeps the page when next() is aborted, without setting an error', async () => {
       const nextResponse = pending()
-      fetchMock
-        .mockImplementationOnce(() => ok(page()))
-        .mockImplementationOnce(nextResponse.respond)
-        .mockImplementationOnce(() => ok(page()))
-      const s = useSearch()
+      fetchMock.mockImplementationOnce(() => ok(page())).mockImplementationOnce(nextResponse.respond)
+      const scope = effectScope()
+      const s = scope.run(() => useSearch())!
       await s.search('bananas')
       const before = s.results.value
       const nextDone = s.next()
-      await s.search('bananas')
+      scope.stop()
       await nextDone
-      expect(s.results.value).toEqual(before)
+      expect(s.results.value).toBe(before)
       expect(s.page.value).toBe(1)
       expect(s.hasPrevious.value).toBe(false)
       expect(s.error.value).toBeNull()
@@ -365,6 +372,20 @@ describe('useSearch', () => {
       await s.retry()
       expect(requested(2).searchParams.get('cursorMark')).toBe(resultsPage.nextCursorMark)
       expect(s.page.value).toBe(2)
+      expect(s.error.value).toBeNull()
+    })
+
+    it('retries the page change after previous() fails', async () => {
+      fetchMock.mockImplementation(() => ok(page()))
+      const s = useSearch()
+      await s.search('bananas')
+      await s.next()
+      fetchMock.mockImplementationOnce(() => httpError(503))
+      await s.previous()
+      expect(s.page.value).toBe(2)
+      await s.retry()
+      expect(requested(3).searchParams.get('cursorMark')).toBe('*')
+      expect(s.page.value).toBe(1)
       expect(s.error.value).toBeNull()
     })
   })
