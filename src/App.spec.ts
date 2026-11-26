@@ -56,6 +56,7 @@ async function searchFor(wrapper: VueWrapper, text: string) {
 }
 
 const liveRegion = (wrapper: VueWrapper) => wrapper.get('[aria-live="polite"]')
+const navLine = (wrapper: VueWrapper) => wrapper.get('nav[aria-label="Results pages"] .nav-status')
 const resultsSection = (wrapper: VueWrapper) => wrapper.get('section[aria-labelledby="results-heading"]')
 const resultsList = (wrapper: VueWrapper) => resultsSection(wrapper).get('ol')
 const resultsHeading = (wrapper: VueWrapper) => resultsSection(wrapper).get('h2#results-heading')
@@ -187,21 +188,36 @@ describe('App', () => {
       expect(pagingButton(wrapper, 'Previous').attributes('disabled')).toBeUndefined()
       expect(pagingButton(wrapper, 'Next').attributes('disabled')).toBeUndefined()
 
-      // Shown beside the buttons, which may be scrolled far from the live region; hidden from screen readers,
-      // which already hear the live region.
-      // Above the buttons, so it's on screen whenever the button just pressed is.
+      // Above the buttons, so it's on screen whenever the button just pressed is; the loading text is hidden from
+      // screen readers, which already hear the live region.
       const nav = wrapper.get('nav[aria-label="Results pages"]')
-      const navStatus = nav.get('[aria-hidden="true"]')
-      expect(nav.element.firstElementChild).toBe(navStatus.element)
-      expect(navStatus.text()).toBe('Loading results')
-      expect(navStatus.find('.spinner').exists()).toBe(true)
+      const line = navLine(wrapper)
+      expect(nav.element.firstElementChild).toBe(line.element)
+      expect(line.get('[aria-hidden="true"]').text()).toBe('Loading results')
+      expect(line.find('.spinner').exists()).toBe(true)
 
       nextPage.resolve(page())
       await flushPromises()
-      // Still rendered, empty, so the buttons don't move when it fills.
-      expect(nav.element.firstElementChild).toBe(navStatus.element)
-      expect(navStatus.text()).toBe('')
-      expect(navStatus.find('.spinner').exists()).toBe(false)
+      expect(nav.element.firstElementChild).toBe(line.element)
+      expect(line.text()).toBe('Results 51 to 53 of 18,068')
+      expect(line.find('.spinner').exists()).toBe(false)
+    })
+
+    it('shows the range beside the buttons, readable by screen readers but not announced', async () => {
+      const full = () => ok(page({ hitCount: 48213, resultList: { result: manyResults(25) } }))
+      fetchMock.mockImplementationOnce(full).mockImplementationOnce(full)
+      const wrapper = mountApp()
+      await searchFor(wrapper, 'bananas')
+      expect(navLine(wrapper).text()).toBe('Results 1 to 25 of 48,213')
+
+      await pagingButton(wrapper, 'Next').trigger('click')
+      await flushPromises()
+      const line = navLine(wrapper)
+      expect(line.text()).toBe('Results 26 to 50 of 48,213')
+      expect(line.attributes('aria-hidden')).toBeUndefined()
+      expect(line.find('[aria-hidden]').exists()).toBe(false)
+      expect(line.element.closest('[aria-live]')).toBeNull()
+      expect(line.attributes('aria-live')).toBeUndefined()
     })
 
     it('shows a failed page change beside the buttons until the page loads', async () => {
@@ -211,19 +227,20 @@ describe('App', () => {
         .mockImplementationOnce(() => ok(page()))
       const wrapper = mountApp()
       await searchFor(wrapper, 'bananas')
-      const navStatus = wrapper.get('nav[aria-label="Results pages"] [aria-hidden="true"]')
+      const line = navLine(wrapper)
 
       await pagingButton(wrapper, 'Next').trigger('click')
       await flushPromises()
-      expect(navStatus.text()).toBe('The search failed. Please try again.')
-      expect(navStatus.classes()).toContain('error')
+      expect(line.get('[aria-hidden="true"]').text()).toBe('The search failed. Please try again.')
+      expect(line.text()).toBe('The search failed. Please try again.')
+      expect(line.classes()).toContain('error')
       expect(liveRegion(wrapper).classes()).toContain('error')
 
       await pagingButton(wrapper, 'Next').trigger('click')
       await flushPromises()
       expect(liveRegion(wrapper).text()).toBe('Results 26 to 28 of 18,068')
-      expect(navStatus.text()).toBe('')
-      expect(navStatus.classes()).not.toContain('error')
+      expect(line.text()).toBe('Results 26 to 28 of 18,068')
+      expect(line.classes()).not.toContain('error')
       expect(liveRegion(wrapper).classes()).not.toContain('error')
     })
 
