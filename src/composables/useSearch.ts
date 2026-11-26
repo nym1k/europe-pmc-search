@@ -1,7 +1,7 @@
 import { computed, getCurrentScope, onScopeDispose, ref, shallowRef } from 'vue'
 
 const ENDPOINT = 'https://www.ebi.ac.uk/europepmc/webservices/rest/search'
-const PAGE_SIZE = 25
+export const PAGE_SIZE = 25
 
 export type EuropePmcResult = {
   id: string
