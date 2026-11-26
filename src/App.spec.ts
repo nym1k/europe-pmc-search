@@ -132,11 +132,15 @@ describe('App', () => {
       const wrapper = mountApp()
       await searchFor(wrapper, 'bananas')
       expect(resultsList(wrapper).attributes('start')).toBe('1')
+      // The visible numbers come from a CSS counter, so its reset must follow the page too.
+      expect(resultsList(wrapper).attributes('role')).toBe('list')
+      expect(resultsList(wrapper).attributes('style')).toContain('counter-reset: result 0')
 
       await pagingButton(wrapper, 'Next').trigger('click')
       await flushPromises()
       expect(liveRegion(wrapper).text()).toBe('Results 26 to 50 of 48,213')
       expect(resultsList(wrapper).attributes('start')).toBe('26')
+      expect(resultsList(wrapper).attributes('style')).toContain('counter-reset: result 25')
     })
 
     it('reads a partial last page', async () => {
@@ -182,8 +186,45 @@ describe('App', () => {
       expect(liveRegion(wrapper).text()).toBe('Loading results')
       expect(pagingButton(wrapper, 'Previous').attributes('disabled')).toBeUndefined()
       expect(pagingButton(wrapper, 'Next').attributes('disabled')).toBeUndefined()
+
+      // Shown beside the buttons, which may be scrolled far from the live region; hidden from screen readers,
+      // which already hear the live region.
+      // Above the buttons, so it's on screen whenever the button just pressed is.
+      const nav = wrapper.get('nav[aria-label="Results pages"]')
+      const navStatus = nav.get('[aria-hidden="true"]')
+      expect(nav.element.firstElementChild).toBe(navStatus.element)
+      expect(navStatus.text()).toBe('Loading results')
+      expect(navStatus.find('.spinner').exists()).toBe(true)
+
       nextPage.resolve(page())
       await flushPromises()
+      // Still rendered, empty, so the buttons don't move when it fills.
+      expect(nav.element.firstElementChild).toBe(navStatus.element)
+      expect(navStatus.text()).toBe('')
+      expect(navStatus.find('.spinner').exists()).toBe(false)
+    })
+
+    it('shows a failed page change beside the buttons until the page loads', async () => {
+      fetchMock
+        .mockImplementationOnce(() => ok(page()))
+        .mockImplementationOnce(httpError)
+        .mockImplementationOnce(() => ok(page()))
+      const wrapper = mountApp()
+      await searchFor(wrapper, 'bananas')
+      const navStatus = wrapper.get('nav[aria-label="Results pages"] [aria-hidden="true"]')
+
+      await pagingButton(wrapper, 'Next').trigger('click')
+      await flushPromises()
+      expect(navStatus.text()).toBe('The search failed. Please try again.')
+      expect(navStatus.classes()).toContain('error')
+      expect(liveRegion(wrapper).classes()).toContain('error')
+
+      await pagingButton(wrapper, 'Next').trigger('click')
+      await flushPromises()
+      expect(liveRegion(wrapper).text()).toBe('Results 26 to 28 of 18,068')
+      expect(navStatus.text()).toBe('')
+      expect(navStatus.classes()).not.toContain('error')
+      expect(liveRegion(wrapper).classes()).not.toContain('error')
     })
 
     it('goes back to page 1 on a new search', async () => {
@@ -295,9 +336,12 @@ describe('App', () => {
       await wrapper.get('input[type="text"]').setValue('bananas')
       await wrapper.get('form').trigger('submit')
       expect(liveRegion(wrapper).text()).toBe('Loading results')
+      expect(liveRegion(wrapper).get('.spinner').attributes('aria-hidden')).toBe('true')
+      expect(wrapper.find('section').exists()).toBe(false)
       response.resolve(page())
       await flushPromises()
       expect(liveRegion(wrapper).text()).toBe('Results 1 to 3 of 18,068')
+      expect(wrapper.find('.spinner').exists()).toBe(false)
     })
 
     it('says nothing matched, with a hint to remove a term', async () => {
@@ -305,8 +349,7 @@ describe('App', () => {
       const wrapper = mountApp()
       await searchFor(wrapper, 'bananas')
       expect(liveRegion(wrapper).text()).toBe('No results. Try removing a term to widen the search.')
-      expect(resultsHeading(wrapper).text()).toBe('Results')
-      expect(resultsSection(wrapper).find('ol').exists()).toBe(false)
+      expect(wrapper.find('section').exists()).toBe(false)
     })
 
     it('shows the error with a Retry button just after the live region that retries the search', async () => {
@@ -336,14 +379,29 @@ describe('App', () => {
       await clickWithFocus(wrapper, 'Next')
 
       const retry = retryButton(wrapper)
+      expect(liveRegion(wrapper).classes()).toContain('error')
       ;(retry.element as HTMLButtonElement).focus()
       await retry.trigger('click')
       expect(liveRegion(wrapper).text()).toBe('Loading results')
+      expect(liveRegion(wrapper).classes()).not.toContain('error')
       expect(document.activeElement).toBe(retryButton(wrapper).element)
 
       retried.resolve(page())
       await flushPromises()
       expect(liveRegion(wrapper).text()).toBe('Results 26 to 28 of 18,068')
+      expect(document.activeElement).toBe(resultsHeading(wrapper).element)
+    })
+
+    it('moves focus to the heading when a retry of a failed first search succeeds', async () => {
+      fetchMock.mockImplementationOnce(httpError).mockImplementationOnce(() => ok(page()))
+      const wrapper = mountApp()
+      await searchFor(wrapper, 'bananas')
+      expect(wrapper.find('section').exists()).toBe(false)
+
+      const retry = retryButton(wrapper)
+      ;(retry.element as HTMLButtonElement).focus()
+      await retry.trigger('click')
+      await flushPromises()
       expect(document.activeElement).toBe(resultsHeading(wrapper).element)
     })
 
