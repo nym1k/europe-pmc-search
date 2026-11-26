@@ -271,12 +271,6 @@ describe('useSearch', () => {
       expect(s.page.value).toBe(1)
       expect(s.results.value).toEqual(before)
       expect(s.hasPrevious.value).toBe(false)
-
-      fetchMock.mockImplementationOnce(() => ok(page()))
-      await s.retry()
-      expect(requested(2).searchParams.get('cursorMark')).toBe('*')
-      expect(s.page.value).toBe(1)
-      expect(s.error.value).toBeNull()
     })
 
     it('keeps the page when next() is aborted, without setting an error', async () => {
@@ -289,7 +283,7 @@ describe('useSearch', () => {
       await s.search('bananas')
       const before = s.results.value
       const nextDone = s.next()
-      await s.retry()
+      await s.search('bananas')
       await nextDone
       expect(s.results.value).toEqual(before)
       expect(s.page.value).toBe(1)
@@ -303,13 +297,13 @@ describe('useSearch', () => {
       let resolveLate!: (value: unknown) => void
       fetchMock
         .mockImplementationOnce(() => ok(page()))
-        // Ignores its signal, so it resolves after the retry.
+        // Ignores its signal, so it resolves after the new search.
         .mockImplementationOnce(() => new Promise((res) => (resolveLate = res)))
         .mockImplementationOnce(() => ok(page()))
       const s = useSearch()
       await s.search('bananas')
       const nextDone = s.next()
-      await s.retry()
+      await s.search('bananas')
       resolveLate({ ok: true, status: 200, json: () => Promise.resolve(page({ hitCount: 999, resultList: { result: [] } })) })
       await nextDone
 
@@ -359,6 +353,19 @@ describe('useSearch', () => {
       await s.retry()
       expect(s.error.value).toBeNull()
       expect(s.hitCount.value).toBe(18068)
+    })
+
+    it('retries the page change after next() fails', async () => {
+      fetchMock.mockImplementation(() => ok(page()))
+      const s = useSearch()
+      await s.search('bananas')
+      fetchMock.mockImplementationOnce(() => httpError(503))
+      await s.next()
+      expect(s.page.value).toBe(1)
+      await s.retry()
+      expect(requested(2).searchParams.get('cursorMark')).toBe(resultsPage.nextCursorMark)
+      expect(s.page.value).toBe(2)
+      expect(s.error.value).toBeNull()
     })
   })
 })

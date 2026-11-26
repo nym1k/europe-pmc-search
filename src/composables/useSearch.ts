@@ -29,6 +29,7 @@ export function useSearch() {
   const loading = ref(false)
   const error = ref<string | null>(null)
   let controller: AbortController | undefined
+  let lastLoad: [stack: string[], pageNumber: number] | undefined
   if (getCurrentScope()) onScopeDispose(() => controller?.abort())
 
   const empty = computed(() => searched.value && hitCount.value === 0)
@@ -42,6 +43,7 @@ export function useSearch() {
 
   // Paging state only moves once the request succeeds, so a failed or aborted page change leaves it as it was.
   async function load(stack: string[], pageNumber: number) {
+    lastLoad = [stack, pageNumber]
     controller?.abort()
     const current = (controller = new AbortController())
     loading.value = true
@@ -95,8 +97,9 @@ export function useSearch() {
   }
 
   function retry() {
-    if (!query.value) return Promise.resolve()
-    return load(cursors.value, page.value)
+    // Re-runs the last request, so a failed next() or previous() is retried as a page change.
+    if (!lastLoad) return Promise.resolve()
+    return load(...lastLoad)
   }
 
   return { results, hitCount, page, loading, error, empty, hasNext, hasPrevious, search, next, previous, retry }
